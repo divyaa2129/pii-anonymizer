@@ -1,3 +1,4 @@
 audit_log.jsonl
 mapping_store.json
+secret.key
 __pycache__/

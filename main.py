@@ -3,40 +3,50 @@ import random
 from datetime import datetime, timezone
 from pathlib import Path
 
+from cryptography.fernet import Fernet
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_anonymizer import AnonymizerEngine as AnonEngine, OperatorConfig
 
 
 MAP_PATH = Path(__file__).with_name("mapping_store.json")
+KEY_PATH = Path(__file__).with_name("secret.key")
+
+
+def get_cipher():
+    if not KEY_PATH.exists():
+        KEY_PATH.write_bytes(Fernet.generate_key())
+    return Fernet(KEY_PATH.read_bytes())
 
 
 def save_mapping(fake_value, real_value):
+    cipher = get_cipher()
     entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "real_value": real_value,
     }
     if MAP_PATH.exists():
-        with MAP_PATH.open("r", encoding="utf-8") as handle:
-            try:
-                data = json.load(handle)
-            except json.JSONDecodeError:
-                data = {}
+        try:
+            decrypted = cipher.decrypt(MAP_PATH.read_bytes()).decode("utf-8")
+            data = json.loads(decrypted)
+        except Exception:
+            data = {}
     else:
         data = {}
 
     data[str(fake_value)] = entry
-    with MAP_PATH.open("w", encoding="utf-8") as handle:
-        json.dump(data, handle, indent=2)
+    payload = json.dumps(data, indent=2).encode("utf-8")
+    MAP_PATH.write_bytes(cipher.encrypt(payload))
 
 
 def reverse_lookup(fake_value):
     if not MAP_PATH.exists():
         return None
-    with MAP_PATH.open("r", encoding="utf-8") as handle:
-        try:
-            data = json.load(handle)
-        except json.JSONDecodeError:
-            return None
+    cipher = get_cipher()
+    try:
+        decrypted = cipher.decrypt(MAP_PATH.read_bytes()).decode("utf-8")
+        data = json.loads(decrypted)
+    except Exception:
+        return None
     entry = data.get(str(fake_value))
     return entry.get("real_value") if entry else None
 
