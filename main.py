@@ -1,5 +1,7 @@
+import argparse
 import json
 import random
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -10,6 +12,7 @@ from presidio_anonymizer import AnonymizerEngine as AnonEngine, OperatorConfig
 
 MAP_PATH = Path(__file__).with_name("mapping_store.json")
 KEY_PATH = Path(__file__).with_name("secret.key")
+LOG_PATH = Path(__file__).with_name("audit_log.jsonl")
 
 
 def get_cipher():
@@ -50,6 +53,7 @@ def reverse_lookup(fake_value):
     entry = data.get(str(fake_value))
     return entry.get("real_value") if entry else None
 
+
 ssn_pattern = Pattern(name="ssn_pattern", regex=r"\b\d{3}-\d{2}-\d{4}\b", score=0.9)
 ssn_recognizer = PatternRecognizer(supported_entity="US_SSN", patterns=[ssn_pattern])
 
@@ -65,12 +69,6 @@ analyzer.registry.add_recognizer(ssn_recognizer)
 analyzer.registry.add_recognizer(address_recognizer)
 
 anonymizer = AnonEngine()
-
-
-def random_ssn(text):
-    fake_value = f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
-    save_mapping(fake_value, "123-45-6789")
-    return fake_value
 
 
 address_choices = [
@@ -111,6 +109,12 @@ def choose_unique_value(pool, used_values, extra_values):
     selected_value = random.sample(available_values, 1)[0]
     used_values.add(selected_value)
     return selected_value
+
+
+def random_ssn(text):
+    fake_value = f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
+    save_mapping(fake_value, "123-45-6789")
+    return fake_value
 
 
 def random_address(text):
@@ -160,28 +164,28 @@ sentences = [
     "Contact me at john.doe@email.com or 555-123-4567.",
 ]
 
-log_path = Path(__file__).with_name("audit_log.jsonl")
 
-used_fake_addresses.clear()
-used_fake_names.clear()
+def build_output_path(input_path):
+    input_path = Path(input_path)
+    return input_path.with_name(f"{input_path.stem}_anonymized.txt")
 
-for index, text in enumerate(sentences, start=1):
+
+def analyze_and_anonymize(text, source_name="document", reset_fake_state=True):
+    if reset_fake_state:
+        used_fake_addresses.clear()
+        used_fake_names.clear()
+
     results = analyzer.analyze(text=text, language="en", score_threshold=0.0)
 
-    print(f"=== Sentence {index} ===")
-    print(text)
-    print("--- Raw detection results ---")
-    for r in results:
-        print(f"{r.entity_type}: '{text[r.start:r.end]}' (score={r.score:.2f})")
-
-    with log_path.open("a", encoding="utf-8") as log_file:
-        for r in results:
+    with LOG_PATH.open("a", encoding="utf-8") as log_file:
+        for result in results:
             entry = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "entity_type": r.entity_type,
-                "confidence_score": r.score,
-                "start": r.start,
-                "end": r.end,
+                "source": source_name,
+                "entity_type": result.entity_type,
+                "confidence_score": result.score,
+                "start": result.start,
+                "end": result.end,
             }
             log_file.write(json.dumps(entry) + "\n")
 
@@ -190,7 +194,62 @@ for index, text in enumerate(sentences, start=1):
         analyzer_results=results,
         operators=operators,
     )
-    print("\n--- Anonymized output ---")
-    print(anonymized_result.text)
-    print()
+    return results, anonymized_result.text
+
+
+def process_text(text, source_name="document"):
+    _, anonymized_text = analyze_and_anonymize(text, source_name=source_name)
+    return anonymized_text
+
+
+def run_demo():
+    for index, text in enumerate(sentences, start=1):
+        results, anonymized_text = analyze_and_anonymize(
+            text,
+            source_name=f"demo_sentence_{index}",
+            reset_fake_state=False,
+        )
+
+        print(f"=== Sentence {index} ===")
+        print(text)
+        print("--- Raw detection results ---")
+        for result in results:
+            print(f"{result.entity_type}: '{text[result.start:result.end]}' (score={result.score:.2f})")
+
+        print("\n--- Anonymized output ---")
+        print(anonymized_text)
+        print()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Detect and anonymize PII in a text file.")
+    parser.add_argument("input_file", nargs="?", help="Text file to anonymize")
+    parser.add_argument("--demo", action="store_true", help="Run the built-in demo sentences")
+    args = parser.parse_args()
+
+    if args.demo:
+        run_demo()
+        return 0
+
+    if not args.input_file:
+        print("Error: please provide a file path or use --demo.", file=sys.stderr)
+        return 1
+
+    input_path = Path(args.input_file)
+    if not input_path.exists():
+        print(f"Error: file not found: {input_path}", file=sys.stderr)
+        return 1
+
+    text = input_path.read_text(encoding="utf-8")
+    anonymized_text = process_text(text, source_name=str(input_path))
+    output_path = build_output_path(input_path)
+    output_path.write_text(anonymized_text, encoding="utf-8")
+
+    print(f"Wrote anonymized output to {output_path}")
+    print(anonymized_text)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
 

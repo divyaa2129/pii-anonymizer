@@ -1,4 +1,5 @@
 audit_log.jsonl
 mapping_store.json
 secret.key
+sample_document_anonymized.txt
 __pycache__/
