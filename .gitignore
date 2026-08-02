@@ -1,1 +1,3 @@
 audit_log.jsonl
+mapping_store.json
+__pycache__/

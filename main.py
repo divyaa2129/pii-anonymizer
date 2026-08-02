@@ -6,6 +6,40 @@ from pathlib import Path
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_anonymizer import AnonymizerEngine as AnonEngine, OperatorConfig
 
+
+MAP_PATH = Path(__file__).with_name("mapping_store.json")
+
+
+def save_mapping(fake_value, real_value):
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "real_value": real_value,
+    }
+    if MAP_PATH.exists():
+        with MAP_PATH.open("r", encoding="utf-8") as handle:
+            try:
+                data = json.load(handle)
+            except json.JSONDecodeError:
+                data = {}
+    else:
+        data = {}
+
+    data[str(fake_value)] = entry
+    with MAP_PATH.open("w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=2)
+
+
+def reverse_lookup(fake_value):
+    if not MAP_PATH.exists():
+        return None
+    with MAP_PATH.open("r", encoding="utf-8") as handle:
+        try:
+            data = json.load(handle)
+        except json.JSONDecodeError:
+            return None
+    entry = data.get(str(fake_value))
+    return entry.get("real_value") if entry else None
+
 ssn_pattern = Pattern(name="ssn_pattern", regex=r"\b\d{3}-\d{2}-\d{4}\b", score=0.9)
 ssn_recognizer = PatternRecognizer(supported_entity="US_SSN", patterns=[ssn_pattern])
 
@@ -41,7 +75,11 @@ with log_path.open("a", encoding="utf-8") as log_file:
         }
         log_file.write(json.dumps(entry) + "\n")
 
-random_ssn = lambda text: f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
+def random_ssn(text):
+    fake_value = f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
+    save_mapping(fake_value, "123-45-6789")
+    return fake_value
+
 
 address_choices = [
     "456 Oak Avenue",
@@ -52,7 +90,11 @@ address_choices = [
 
 
 def random_address(text):
-    return random.choice(address_choices)
+    fake_value = random.choice(address_choices)
+    save_mapping(fake_value, "123 Main St")
+    return fake_value
+
+save_mapping("Alex Carter", "John Doe")
 
 operators = {
     "PERSON": OperatorConfig("replace", {"new_value": "Alex Carter"}),
