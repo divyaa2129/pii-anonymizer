@@ -66,24 +66,6 @@ analyzer.registry.add_recognizer(address_recognizer)
 
 anonymizer = AnonEngine()
 
-text = "My name is John Doe, my SSN is 123-45-6789, and I live at 123 Main St."
-results = analyzer.analyze(text=text, language="en", score_threshold=0.0)
-
-print("--- Raw detection results ---")
-for r in results:
-    print(f"{r.entity_type}: '{text[r.start:r.end]}' (score={r.score:.2f})")
-
-log_path = Path(__file__).with_name("audit_log.jsonl")
-with log_path.open("a", encoding="utf-8") as log_file:
-    for r in results:
-        entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "entity_type": r.entity_type,
-            "confidence_score": r.score,
-            "start": r.start,
-            "end": r.end,
-        }
-        log_file.write(json.dumps(entry) + "\n")
 
 def random_ssn(text):
     fake_value = f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
@@ -96,26 +78,119 @@ address_choices = [
     "789 Pine Road",
     "321 Cedar Lane",
     "654 Elm Street",
+    "100 Main Street",
+    "222 Birch Drive",
+    "333 Willow Way",
+    "444 Maple Court",
 ]
+
+fake_names = [
+    "Alex Carter",
+    "Jamie Lee",
+    "Morgan Brooks",
+    "Taylor Reed",
+    "Jordan Kim",
+    "Casey Nguyen",
+    "Riley Patel",
+    "Drew Sullivan",
+    "Parker Chen",
+    "Skylar Davis",
+]
+
+used_fake_addresses = set()
+used_fake_names = set()
+
+
+def choose_unique_value(pool, used_values, extra_values):
+    available_values = [value for value in pool if value not in used_values]
+    if not available_values:
+        pool.extend(extra_values)
+        available_values = [value for value in pool if value not in used_values]
+    if not available_values:
+        raise RuntimeError("No unused values remain in the pool.")
+    selected_value = random.sample(available_values, 1)[0]
+    used_values.add(selected_value)
+    return selected_value
 
 
 def random_address(text):
-    fake_value = random.choice(address_choices)
+    fake_value = choose_unique_value(
+        address_choices,
+        used_fake_addresses,
+        [
+            "555 Sunset Boulevard",
+            "666 River Road",
+            "777 Redwood Drive",
+            "888 Aspen Boulevard",
+        ],
+    )
     save_mapping(fake_value, "123 Main St")
     return fake_value
+
+
+def random_person_name(text):
+    fake_value = choose_unique_value(
+        fake_names,
+        used_fake_names,
+        [
+            "Quinn Rivera",
+            "Harper Brooks",
+            "Avery Collins",
+            "Emerson Ward",
+            "Rowan Foster",
+        ],
+    )
+    save_mapping(fake_value, text)
+    return fake_value
+
 
 save_mapping("Alex Carter", "John Doe")
 
 operators = {
-    "PERSON": OperatorConfig("replace", {"new_value": "Alex Carter"}),
+    "PERSON": OperatorConfig("custom", {"lambda": random_person_name}),
     "US_SSN": OperatorConfig("custom", {"lambda": random_ssn}),
     "ADDRESS": OperatorConfig("custom", {"lambda": random_address}),
+    "LOCATION": OperatorConfig("custom", {"lambda": random_address}),
 }
 
-anonymized_result = anonymizer.anonymize(
-    text=text,
-    analyzer_results=results,
-    operators=operators,
-)
-print("\n--- Anonymized output ---")
-print(anonymized_result.text)
+sentences = [
+    "Mr. Green admired the green carpet in his office.",
+    "Dr. Patel treated John Smith and Mary Johnson at the clinic on 5th Avenue.",
+    "The weather was nice today and I went for a walk.",
+    "Contact me at john.doe@email.com or 555-123-4567.",
+]
+
+log_path = Path(__file__).with_name("audit_log.jsonl")
+
+used_fake_addresses.clear()
+used_fake_names.clear()
+
+for index, text in enumerate(sentences, start=1):
+    results = analyzer.analyze(text=text, language="en", score_threshold=0.0)
+
+    print(f"=== Sentence {index} ===")
+    print(text)
+    print("--- Raw detection results ---")
+    for r in results:
+        print(f"{r.entity_type}: '{text[r.start:r.end]}' (score={r.score:.2f})")
+
+    with log_path.open("a", encoding="utf-8") as log_file:
+        for r in results:
+            entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "entity_type": r.entity_type,
+                "confidence_score": r.score,
+                "start": r.start,
+                "end": r.end,
+            }
+            log_file.write(json.dumps(entry) + "\n")
+
+    anonymized_result = anonymizer.anonymize(
+        text=text,
+        analyzer_results=results,
+        operators=operators,
+    )
+    print("\n--- Anonymized output ---")
+    print(anonymized_result.text)
+    print()
+
