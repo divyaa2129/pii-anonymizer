@@ -99,6 +99,32 @@ used_fake_addresses = set()
 used_fake_names = set()
 
 
+def resolve_overlaps(results):
+    filtered = []
+    for result in results:
+        if result.entity_type != "PERSON":
+            filtered.append(result)
+            continue
+
+        overlapping_address = None
+        for other in results:
+            if other.entity_type != "ADDRESS":
+                continue
+            if other.start >= result.end or other.end <= result.start:
+                continue
+
+            overlap_len = min(result.end, other.end) - max(result.start, other.start)
+            span_len = max(result.end - result.start, other.end - other.start)
+            if span_len > 0 and overlap_len / span_len >= 0.5:
+                overlapping_address = other
+                break
+
+        if overlapping_address is None:
+            filtered.append(result)
+
+    return filtered
+
+
 def choose_unique_value(pool, used_values, extra_values):
     available_values = [value for value in pool if value not in used_values]
     if not available_values:
@@ -170,12 +196,17 @@ def build_output_path(input_path):
     return input_path.with_name(f"{input_path.stem}_anonymized.txt")
 
 
+def get_detected_results(text):
+    results = analyzer.analyze(text=text, language="en", score_threshold=0.0)
+    return resolve_overlaps(results)
+
+
 def analyze_and_anonymize(text, source_name="document", reset_fake_state=True):
     if reset_fake_state:
         used_fake_addresses.clear()
         used_fake_names.clear()
 
-    results = analyzer.analyze(text=text, language="en", score_threshold=0.0)
+    results = get_detected_results(text)
 
     with LOG_PATH.open("a", encoding="utf-8") as log_file:
         for result in results:
