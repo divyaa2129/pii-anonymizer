@@ -67,7 +67,9 @@ Morgan Brooks visited 654 Elm Street and shared his SSN 298-22-5042.
 
 ## Known limitations
 
-The detector is effective for many common PII and PHI patterns, but it is not perfect. In some cases, titles can be detected separately from names, such as when "Mr. Green" is recognized as just "Green" rather than the full title-plus-name phrase. This is an area for future refinement.
+The current evaluation on 20 labeled examples achieved an overall F1 score of 0.852, with 23 true positives, 4 false positives, and 4 false negatives. ADDRESS, EMAIL_ADDRESS, PHONE_NUMBER, and US_SSN each achieved perfect F1 scores of 1.0, while PERSON detection reached 0.714 F1. The remaining PERSON gap is mainly due to title-splitting issues, such as "Dr. Patel" being detected as just "Patel", which is a known limitation of the underlying NER behavior.
+
+An earlier version also produced false positives when street names were misclassified as PERSON. That issue was addressed by adding overlap-resolution logic between PERSON and ADDRESS detections so the regex-validated address is preferred when spans overlap. These numbers are reproducible by running `python eval.py`.
 
 For production use, the local secret.key file should be replaced with a securely managed secret from an environment variable or a secrets manager, rather than being stored as a local file.
 
