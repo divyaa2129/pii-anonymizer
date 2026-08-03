@@ -1,0 +1,124 @@
+[
+  {
+    "text": "John Doe visited the clinic on 123 Main St and shared his SSN 123-45-6789.",
+    "entities": [
+      {"type": "PERSON", "substring": "John Doe"},
+      {"type": "ADDRESS", "substring": "123 Main St"},
+      {"type": "US_SSN", "substring": "123-45-6789"}
+    ]
+  },
+  {
+    "text": "Dr. Patel treated the patient in Room 4 before discharge.",
+    "entities": [
+      {"type": "PERSON", "substring": "Dr. Patel"}
+    ]
+  },
+  {
+    "text": "Maria Lopez can be reached at maria.lopez@email.com or 555-123-4567.",
+    "entities": [
+      {"type": "PERSON", "substring": "Maria Lopez"},
+      {"type": "EMAIL_ADDRESS", "substring": "maria.lopez@email.com"},
+      {"type": "PHONE_NUMBER", "substring": "555-123-4567"}
+    ]
+  },
+  {
+    "text": "The weather was nice today and I went for a walk.",
+    "entities": []
+  },
+  {
+    "text": "The Green carpet looked beautiful in the conference room.",
+    "entities": []
+  },
+  {
+    "text": "The White House is a well-known landmark in Washington.",
+    "entities": []
+  },
+  {
+    "text": "Michael Chen lives at 88 Willow Lane and his email is michael.chen@lawfirm.com.",
+    "entities": [
+      {"type": "PERSON", "substring": "Michael Chen"},
+      {"type": "ADDRESS", "substring": "88 Willow Lane"},
+      {"type": "EMAIL_ADDRESS", "substring": "michael.chen@lawfirm.com"}
+    ]
+  },
+  {
+    "text": "The patient was admitted after the injury and later spoke with Sarah Kim.",
+    "entities": [
+      {"type": "PERSON", "substring": "Sarah Kim"}
+    ]
+  },
+  {
+    "text": "Please contact Ana Ruiz at 212-555-0147 before noon.",
+    "entities": [
+      {"type": "PERSON", "substring": "Ana Ruiz"},
+      {"type": "PHONE_NUMBER", "substring": "212-555-0147"}
+    ]
+  },
+  {
+    "text": "The contract was signed by Robert Brown on 10 River Road.",
+    "entities": [
+      {"type": "PERSON", "substring": "Robert Brown"},
+      {"type": "ADDRESS", "substring": "10 River Road"}
+    ]
+  },
+  {
+    "text": "A review note stated that the patient was seen by Dr. Adams.",
+    "entities": [
+      {"type": "PERSON", "substring": "Dr. Adams"}
+    ]
+  },
+  {
+    "text": "Emily Davis and Daniel Ortiz met at the hospital before the procedure.",
+    "entities": [
+      {"type": "PERSON", "substring": "Emily Davis"},
+      {"type": "PERSON", "substring": "Daniel Ortiz"}
+    ]
+  },
+  {
+    "text": "The office is located at 500 Court Avenue and the receptionist can help.",
+    "entities": [
+      {"type": "ADDRESS", "substring": "500 Court Avenue"}
+    ]
+  },
+  {
+    "text": "No further action is required at this time.",
+    "entities": []
+  },
+  {
+    "text": "Contact me at jane.doe@hospital.org or 555-987-6543.",
+    "entities": [
+      {"type": "EMAIL_ADDRESS", "substring": "jane.doe@hospital.org"},
+      {"type": "PHONE_NUMBER", "substring": "555-987-6543"}
+    ]
+  },
+  {
+    "text": "James Wilson reported the issue to the legal team after the hearing.",
+    "entities": [
+      {"type": "PERSON", "substring": "James Wilson"}
+    ]
+  },
+  {
+    "text": "The patient ID was 987-65-4321 and the chart was updated.",
+    "entities": [
+      {"type": "US_SSN", "substring": "987-65-4321"}
+    ]
+  },
+  {
+    "text": "She called from 44 Pine Street and left a voicemail for Laura Brooks.",
+    "entities": [
+      {"type": "ADDRESS", "substring": "44 Pine Street"},
+      {"type": "PERSON", "substring": "Laura Brooks"}
+    ]
+  },
+  {
+    "text": "The sample was reviewed by Dr. Patel and Ms. Nguyen.",
+    "entities": [
+      {"type": "PERSON", "substring": "Dr. Patel"},
+      {"type": "PERSON", "substring": "Ms. Nguyen"}
+    ]
+  },
+  {
+    "text": "A follow-up appointment was scheduled for Monday morning.",
+    "entities": []
+  }
+]
